@@ -1,0 +1,23 @@
+html{
+	height:100%;
+	margin:0;
+}
+body{
+	margin:0;
+	background-color:black;
+	display:flex;
+	justify-content:center;
+	height:100%;
+}
+canvas{
+	margin:auto;
+	border:2px solid white;
+	height:90%;
+}
+
+@media (orientation: portrait) {
+  canvas {
+    width: 90%;
+    height:auto;
+  }
+}
