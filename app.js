@@ -81,7 +81,7 @@ async function startGame()
 					setHighScore(score);
 					text += "<br>New High Score!";
 				}
-				text+= "<br>Play again?";
+				text+= "<br>Press &lt;enter&gt; to play again";
 				displayText(text);
 				displayHighScore();
 				break;
