@@ -10,8 +10,10 @@ function sleep(ms) {
 
 const snake = new Snake(ctx, GRID_SIZE/2,GRID_SIZE/2,GRID_SIZE);
 snake.extend(1);
+snake.color="rgb(000,200,000)";
 
 const food = new Food(ctx, GRID_SIZE);
+food.color="rgb(200,200,50)";
 food.draw();
 
 async function main()
@@ -31,13 +33,13 @@ async function main()
 			snake.head.y = 0;
 		if(snake.intersectsPoint(food))
 		{
-			snake.extend(10);
+			snake.extend(1);
 			while(snake.intersectsPoint(food))
 				food.placeRandomly();
 			food.draw();
 			console.log("GOBBLE");
 		}
-		await sleep(50);
+		await sleep(48);
 		
 	}
 }

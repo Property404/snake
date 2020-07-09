@@ -97,27 +97,42 @@ export class Snake
 			throw("Snake created with invalid grid size");
 	}
 
+
 	set direction(new_direction)
 	{
-		const opposing_directions =
-			[
-				[Direction.UP, Direction.DOWN],
-				[Direction.DOWN, Direction.UP],
-				[Direction.RIGHT, Direction.LEFT],
-				[Direction.LEFT, Direction.RIGHT]
-			];
-		for(const od of opposing_directions)
-		{
-			if(this._direction === od[0] &&
-				new_direction === od[1])
-				return;
-		}
+		if
+		(
+			this.neck &&
+			(
+				(
+					(this.head.x < this.neck.x ||
+						this.head.x > this.neck.x)&&
+					(new_direction == Direction.RIGHT ||
+						new_direction == Direction.LEFT)
+				)||
+				(
+					(this.head.y < this.neck.y ||
+						this.head.y > this.neck.y)&&
+					(new_direction == Direction.UP ||
+						new_direction == Direction.DOWN)
+				)
+			)
+		)
+		{return;}
 		this._direction = new_direction;
 	}
 
 	get head()
 	{
 		return this._parts[0];
+	}
+
+	get neck()
+	{
+		if(this._parts.length>1)
+			return this._parts[1];
+		else
+			return null;
 	}
 
 	get tail()
@@ -183,18 +198,11 @@ export class Snake
 				throw "eh";
 		}
 		
-		for(let part of this._parts)
-		{
-			if(part)
-			{
-				drawBlock(this.context,
-					part.x,
-					part.y,
-					this.grid_size,
-					this.color);
-			}
-
-		}
+		drawBlock(this.context,
+			this.head.x,
+			this.head.y,
+			this.grid_size,
+			this.color);
 	}
 
 	// Increase snake length
@@ -237,7 +245,6 @@ export class Snake
 		{
 			if(part)
 			{
-				console.log("part:",part.x, part.y);
 				if(part.x === x && part.y === y)
 				{
 					return true;
