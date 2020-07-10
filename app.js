@@ -1,5 +1,6 @@
 "use strict";
 import {Food, Direction, Snake} from './classes.js'
+import {SnakeAI} from './ai.js';
 const GRID_SIZE = 50;
 const MIN_DELAY = 30;
 const canvas = document.querySelector("canvas");
@@ -57,20 +58,26 @@ async function countDown()
 
 async function startGame()
 {
-		// Event loop
 		snake = new Snake(ctx, GRID_SIZE/2,GRID_SIZE/2,GRID_SIZE);
 		snake.extend(4);
 		snake.color="rgb(000,200,000)";
+
+
 		const food = new Food(ctx, GRID_SIZE);
 		food.color="rgb(200,200,50)";
+
+		let ai = new SnakeAI(snake, [food]);
+
 		let score = 0;
-		let delay = 50;
+		//let delay = 50;
+		let delay = 30;
 		displayScore(score);
 		displayHighScore();
 		await countDown();
 		food.draw();
 		while(true)
 		{
+			ai.moveSnake();
 			snake.update();
 			if(snake.headMeetsSnake(snake))
 			{
@@ -110,7 +117,7 @@ async function startGame()
 				if(score%10===0 && delay>MIN_DELAY)
 					delay--;
 			}
-			await sleep(delay);
+			await sleep(1+delay);
 		}
 }
 

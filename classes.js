@@ -43,7 +43,7 @@ class Point
 			typeof x !== "number"||
 			typeof y !== "number"
 		)
-			throw("Can't place point at non-numeric position");
+			throw new Error("Can't place point at non-numeric position");
 		this.x = x;
 		this.y = y;
 	}
@@ -80,25 +80,56 @@ export class Food extends Point
 
 export class Snake
 {
-	_parts = []
+	parts = []
 	_direction = Direction.UP;
 	color = "white";
 	
 	constructor(context, initial_x, initial_y, grid_size)
 	{
-		this.context = context;
-		this.grid_size = grid_size;
-		this._parts.push(new Point(initial_x, initial_y));
+		if(context && context instanceof Snake)
+		{
+			context.assimilate(this)
+		}
+		else
+		{
+			this.context = context;
+			this.grid_size = grid_size;
+			this.parts.push(new Point(initial_x, initial_y));
 
-		if(!context || !grid_size)
-			throw("Snake constructor incomplete arguments");
+			if(!context || !grid_size)
+				throw("Snake constructor incomplete arguments");
 
-		if(context.canvas.width%grid_size)
-			throw("Snake created with invalid grid size");
+			if(context.canvas.width%grid_size)
+				throw("Snake created with invalid grid size");
+		}
+	}
+
+	// Copy ourself over to a new object
+	// Effectively making a clone (though we don't create the object ourself)
+	assimilate(snake)
+	{
+		snake._direction = this._direction;
+		snake.color = this.color;
+		snake.grid_size = this.grid_size;
+		snake.parts.length = 0;
+		for(const part of this.parts)
+		{
+			if(part)
+				snake.parts.push(new Point(part.x, part.y));
+			else
+				snake.parts.push(null);
+		}
+		for(let i=0;i<this.parts.length;i++)
+		{
+			if(this.parts[i] === null && snake.parts[i] === null)
+				continue;
+			if(!this.parts[i].equals(snake.parts[i]))
+				throw("FUCKING FUCKBALLS");
+		}
 	}
 
 
-	set direction(new_direction)
+	canMoveInDirection(new_direction)
 	{
 		if
 		(
@@ -118,32 +149,37 @@ export class Snake
 				)
 			)
 		)
-		{return;}
-		this._direction = new_direction;
+		{return false;}
+		return true
+	}
+	set direction(new_direction)
+	{
+		if(this.canMoveInDirection(new_direction))
+			this._direction = new_direction;
 	}
 
 	get head()
 	{
-		return this._parts[0];
+		return this.parts[0];
 	}
 
 	get neck()
 	{
-		if(this._parts.length>1)
-			return this._parts[1];
+		if(this.parts.length>1)
+			return this.parts[1];
 		else
 			return null;
 	}
 
 	get tail()
 	{
-		return this._parts[this._parts.length-1];
+		return this.parts[this.parts.length-1];
 	}
 
 	printSelf()
 	{
 		let text = "[";
-		for(const part of this._parts)
+		for(const part of this.parts)
 		{
 			if(part)
 				text += ` (${part.x}, ${part.y})`
@@ -157,7 +193,7 @@ export class Snake
 	update()
 	{
 		// Clear tail
-		if (this.tail)
+		if (this.context && this.tail)
 		{
 			clearBlock(this.context,
 				this.tail.x,
@@ -167,17 +203,18 @@ export class Snake
 		}
 		
 		// Shift snake up
-		for(let i=this._parts.length-1;i>0;i--)
+		console.log(this.parts);
+		for(let i=this.parts.length-1;i>0;i--)
 		{
-			if(this._parts[i])
+			if(this.parts[i])
 
-				this._parts[i].place(
-					this._parts[i-1].x,
-					this._parts[i-1].y);
+				this.parts[i].place(
+					this.parts[i-1].x,
+					this.parts[i-1].y);
 			else
 			{
-				if(this._parts[i-1])
-					this._parts[i] = new Point(this._parts[i-1].x,this._parts[i-1].y);
+				if(this.parts[i-1])
+					this.parts[i] = new Point(this.parts[i-1].x,this.parts[i-1].y);
 			}
 		}
 		switch(this._direction)
@@ -198,11 +235,12 @@ export class Snake
 				throw "eh";
 		}
 		
-		drawBlock(this.context,
-			this.head.x,
-			this.head.y,
-			this.grid_size,
-			this.color);
+		if(this.context)
+			drawBlock(this.context,
+				this.head.x,
+				this.head.y,
+				this.grid_size,
+				this.color);
 	}
 
 	// Increase snake length
@@ -211,7 +249,7 @@ export class Snake
 		if(typeof value !== "number" || value <1)
 			throw("Snake.extend: invalid value");
 		for(let i=0;i<value;i++)
-			this._parts.push(null);
+			this.parts.push(null);
 	}
 
 	// Check if we intersect with another snake (including ourself)
@@ -223,9 +261,9 @@ export class Snake
 			if(this.head.equals(snake.head))
 				return true;
 		}
-		for(let i=1;i<snake._parts.length;i++)
+		for(let i=1;i<snake.parts.length;i++)
 		{
-			const part = snake._parts[i];
+			const part = snake.parts[i];
 			if(!part)break;
 			if(this.head.equals(part))
 				return true;
@@ -241,7 +279,7 @@ export class Snake
 
 	intersects(x,y)
 	{
-		for(const part of this._parts)
+		for(const part of this.parts)
 		{
 			if(part)
 			{
