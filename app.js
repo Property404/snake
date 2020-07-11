@@ -54,8 +54,9 @@ async function countDown()
 	for(let i=3;i>=0;i--)
 	{
 		displayText(i?i:"Get Ready");
-		await sleep(300);
+		await sleep(500);
 	}
+	await sleep(200);
 	displayText("");
 }
 
