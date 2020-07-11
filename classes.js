@@ -65,6 +65,10 @@ export class Food extends Point
 	{
 		drawBlock(this.context, this.x, this.y, this.grid_size, this.color)
 	}
+	clear()
+	{
+		clearBlock(this.context, this.x, this.y, this.grid_size)
+	}
 
 	placeRandomly()
 	{
@@ -131,6 +135,7 @@ export class Snake
 
 	canMoveInDirection(new_direction)
 	{
+		if(new_direction == this._direction) return true;
 		if
 		(
 			this.neck &&
@@ -150,7 +155,11 @@ export class Snake
 			)
 		)
 		{return false;}
-		return true
+		return true;
+	}
+	get direction()
+	{
+		return this._direction
 	}
 	set direction(new_direction)
 	{
@@ -203,7 +212,6 @@ export class Snake
 		}
 		
 		// Shift snake up
-		console.log(this.parts);
 		for(let i=this.parts.length-1;i>0;i--)
 		{
 			if(this.parts[i])
@@ -244,9 +252,9 @@ export class Snake
 	}
 
 	// Increase snake length
-	extend(value=1)
+	extend(value)
 	{
-		if(typeof value !== "number" || value <1)
+		if(typeof value !== "number" || value <0)
 			throw("Snake.extend: invalid value");
 		for(let i=0;i<value;i++)
 			this.parts.push(null);
@@ -273,7 +281,6 @@ export class Snake
 
 	intersectsPoint(point)
 	{
-		console.log(point.x,point.y);
 		return this.intersects(point.x, point.y);
 	}
 
