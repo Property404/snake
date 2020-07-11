@@ -117,7 +117,10 @@ async function startGame(config)
 					{
 						dead_snakes.push(snake);
 						if(peer === player && snake != player)
+						{
 							score+=10;
+							displayScore(score);
+						}
 					}
 				}
 			}
