@@ -1,16 +1,19 @@
 "use strict";
 import {Food, Direction, Snake} from './classes.js'
 import {SnakeAI} from './ai.js';
-const GRID_SIZE = 50;
-const MIN_DELAY = 30;
+import {sleep} from './utils.js';
+
+const COLOR_LIST = ["blue","pink","red","purple","cyan", "rebeccapurple", "white", "silver", "brown", "magenta"];
+const GRID_SIZE = 40;
+const DEFAULT_DELAY = 50;
+const ENEMY_SPAWN_DELAY = 1000*60;
+
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext('2d');
+
+let player;
 let enter_pressed;
 let current_direction = null;
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 function setHighScore(score)
 {
@@ -56,102 +59,142 @@ async function countDown()
 	displayText("");
 }
 
-async function startGame()
+async function startGame(config)
 {
-		let snake = new Snake(ctx, GRID_SIZE/2,GRID_SIZE/2,GRID_SIZE);
-		snake.extend(7);
-		snake.color="rgb(000,200,000)";
-
+		player = new Snake(ctx, GRID_SIZE/2,GRID_SIZE/2,GRID_SIZE);
+		player.extend(0);
+		player.color="rgb(000,200,000)";
 
 		const food = new Food(ctx, GRID_SIZE);
 		food.color="rgb(200,200,50)";
 
-		let ai = new SnakeAI(snake, food, GRID_SIZE);
-		ai.forethought = 3;
+		const enemies = [];
+		const all_snakes = [player];
+		function addEnemy(forethought)
+		{
+			let x,y;
+			do
+			{
+				x = Math.floor(Math.random()*GRID_SIZE);
+				y = Math.floor(Math.random()*GRID_SIZE);
+			}while(player.head.distanceFrom(x,y)<5 || player.intersects(x,y));
+			const snake = new Snake(ctx, x, y, GRID_SIZE);
+			snake.color = COLOR_LIST[Math.floor(Math.random()*COLOR_LIST.length)];
+			snake.extend(0);
+			const ai = new SnakeAI(snake, food, GRID_SIZE, all_snakes);
+			ai.forethought = config.forethought;
+			all_snakes.push(snake);
+			enemies.push(ai);
+		}
 
 		let score = 0;
-		let delay = 30;
-		let snake_slowdown = 2;
+		let delay = DEFAULT_DELAY;
+		let time_passed = Math.floor(ENEMY_SPAWN_DELAY*.94);
 
-		let slowdown_timer = 0;
-
-		food.draw();
 		displayScore(score);
 		displayHighScore();
 
 		await countDown();
+		food.draw();
 
 		while(true)
 		{
-			food.clear();
-			switch(current_direction)
+			// Move all sneks
+			for(const snake of all_snakes)
 			{
-				case Direction.UP:
-					food.y = (food.y - 1)%GRID_SIZE;
-					break;
-				case Direction.DOWN:
-					food.y = (food.y + 1)%GRID_SIZE;
-					break;
-				case Direction.LEFT:
-					food.x = (food.x - 1)%GRID_SIZE;
-					break;
-				case Direction.RIGHT:
-					food.x = (food.x + 1)%GRID_SIZE;
-					break;
+				if(snake)
+					snake.update();
 			}
-			while(food.x<0)food.x+=GRID_SIZE;
-			while(food.y<0)food.y+=GRID_SIZE;
-			food.draw();
 
-			slowdown_timer++;
-			if(slowdown_timer%snake_slowdown === 0)
-				snake.update();
-
-			// Check if the snake dies
-			if(snake.headMeetsSnake(snake))
+			// Determine which snakies bit the dust
+			const dead_snakes = [];
+			for(const snake of all_snakes)
 			{
-				// Game over!
-				let text = "Game Over";
-				if(score > getHighScore())
+				for(const peer of all_snakes)
 				{
-					setHighScore(score);
-					text += "<br>New High Score!";
+					if(snake.headMeetsSnake(peer))
+					{
+						dead_snakes.push(snake);
+						if(peer === player && snake != player)
+							score+=10;
+					}
 				}
-				text+= "<br>Press &lt;enter&gt; to play again";
-				displayText(text);
-				displayHighScore();
-				break;
 			}
 
-			// Pass through walsl
-			if(snake.head.x<0)
-				snake.head.x = GRID_SIZE-1;
-			if(snake.head.x>=GRID_SIZE)
-				snake.head.x = 0;
-			if(snake.head.y<0)
-				snake.head.y = GRID_SIZE-1;
-			if(snake.head.y>=GRID_SIZE)
-				snake.head.y = 0;
-
-			// Check if the snake ate something
-			if(snake.intersectsPoint(food))
+			// Remove dead snakes from our snake pool
+			for(const dead_snake of dead_snakes)
 			{
-				score+=1;
-				displayScore(score);
+				const index = all_snakes.indexOf(dead_snake);
+				console.log("Removing dead snake!", dead_snake.color, " ", index);
+				all_snakes.splice(index,1);
+				if(index)
+					enemies.splice(index-1, 1);
 
-				// Get longer
-				snake.extend(1);
-
-				// Make new food
-				while(snake.intersectsPoint(food))
-					food.placeRandomly();
-				food.draw();
+				if(all_snakes.includes(dead_snake))
+				{
+					throw new Error("That ain't right!");
+				}
 			}
 
-			// Prepare the snake for updating
-			ai.moveSnake();
+			// Handle snake deaths
+			for(const dead_snake of dead_snakes)
+			{
+				await dead_snake.startDeathAnimation();
+				if(dead_snake === player)
+				{
+					// Game over!
+					let text = "Game Over";
+					if(score > getHighScore())
+					{
+						setHighScore(score);
+						text += "<br>New High Score!";
+					}
+					text+= "<br>Press &lt;enter&gt; to play again";
+					displayText(text);
+					displayHighScore();
+					return;
+				}
+			}
+
+			for(const snake of all_snakes)
+			{
+				// Check if a snake ate something
+				if(snake.intersectsPoint(food))
+				{
+					if(snake === player)
+					{
+						score+=1;
+						displayScore(score);
+					}
+
+					// Get longer
+					snake.extend(1);
+
+					// Make new food
+					while(snake.intersectsPoint(food))
+						food.placeRandomly();
+					food.draw();
+				}
+
+			}
+
+			// Prepare the cpu snakes for updating
+			for(let ai of enemies)
+				ai.moveSnake();
 			await sleep(delay);
-			await ai.wait();
+			for(let ai of enemies)
+				await ai.wait();
+
+			time_passed+=delay;
+			if(time_passed > ENEMY_SPAWN_DELAY)
+			{
+				if(enemies.length < config.number_of_enemies)
+				{
+					addEnemy(config.forethought);
+					time_passed = 0;
+				}
+			}
+
 		}
 }
 
@@ -159,7 +202,10 @@ async function main()
 {
 	while(true)
 	{
-		await startGame()
+		await startGame({
+			number_of_enemies: 1,
+			forethought:1
+		})
 		enter_pressed = false;
 		while(!enter_pressed)
 		{
@@ -168,25 +214,6 @@ async function main()
 	}
 }
 
-window.onkeyup = function(e){
-	const key = e.key;
-	if(key === "ArrowUp" && current_direction===Direction.UP)
-	{
-		current_direction = null;
-	}
-	else if(key === "ArrowDown" && current_direction===Direction.DOWN)
-	{
-		current_direction = null;
-	}
-	else if(key === "ArrowLeft" && current_direction===Direction.LEFT)
-	{
-		current_direction = null;
-	}
-	else if(key === "ArrowRight" && current_direction===Direction.RIGHT)
-	{
-		current_direction = null;
-	}
-}
 window.onkeydown = function(e)
 {
 	const key = e.key;
@@ -195,19 +222,19 @@ window.onkeydown = function(e)
 		e.preventDefault();
 		if(key === "ArrowUp")
 		{
-			current_direction = Direction.UP;
+			player.direction = Direction.UP;
 		}
 		else if(key === "ArrowDown")
 		{
-			current_direction = Direction.DOWN;
+			player.direction = Direction.DOWN;
 		}
 		else if(key === "ArrowLeft")
 		{
-			current_direction = Direction.LEFT;
+			player.direction = Direction.LEFT;
 		}
 		else if(key === "ArrowRight")
 		{
-			current_direction = Direction.RIGHT;
+			player.direction = Direction.RIGHT;
 		}
 	}else if(key === "Enter")
 	{

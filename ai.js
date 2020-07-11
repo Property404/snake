@@ -1,33 +1,34 @@
-import {Food, Direction, Snake} from './classes.js'
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+import {Direction, Snake} from './classes.js'
+import {sleep} from './utils.js';
 
 const LOW_SCORE = -1000;
 
 export class SnakeAI
 {
 	forethought = 2;
-	constructor(snake, food, grid_size)
+	constructor(snake, food, grid_size, peers)
 	{
-		this._snake = snake;
+		this.snake = snake;
 		this._food= food;
 		this._grid_size = grid_size;
+		this._peers = peers
 	}
 	
 	_scoreOutcome(snake, food)
 	{
-		for(const part of snake.parts)
+		for(const peer of this._peers)
 		{
-			if(part===null)break;
+			for(const part of peer.parts)
+			{
+				if(part===null)break;
 
-			if(part === snake.head)
-				continue;
+				if(part === snake.head)
+					continue;
 
-			// We fucked up!
-			if(part.equals(snake.head))
-				return LOW_SCORE;
+				// We fucked up!
+				if(part.equals(snake.head))
+					return LOW_SCORE;
+			}
 		}
 
 		let value = 0;
@@ -68,10 +69,8 @@ export class SnakeAI
 	{
 		if(snake.direction == Direction.UP || snake.direction == Direction.DOWN)
 			return false;
-		/*
 		if(snake.parts.length < this._grid_size)
 			return false;
-			*/
 		let over = false;
 		let under = false;
 		for(const part of snake.parts)
@@ -101,7 +100,6 @@ export class SnakeAI
 		if(!under || !over)
 			return false;
 		snake.color= "blue;"
-		console.log("TRUTH\r\n");
 		return true;
 	}
 
@@ -137,7 +135,7 @@ export class SnakeAI
 		let preferred_direction = null;
 		if(this._food)
 		{
-			const s = this._snake.head;
+			const s = this.snake.head;
 			const f = this._food;
 
 			if(s.x < f.x)
@@ -151,9 +149,9 @@ export class SnakeAI
 		}
 		for(const direction of directions)
 		{
-			if(!this._snake.canMoveInDirection(direction))
+			if(!this.snake.canMoveInDirection(direction))
 				continue
-			const new_snake = new Snake(this._snake);
+			const new_snake = new Snake(this.snake);
 			new_snake.direction = direction;
 			let score = this._determinePathWorth(
 					new_snake, this._food, this.forethought);
@@ -164,7 +162,7 @@ export class SnakeAI
 			}
 		}
 		if(!best_direction)throw("Need direction");
-		this._snake.direction = best_direction;
+		this.snake.direction = best_direction;
 		this._complete = true;
 	}
 

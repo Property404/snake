@@ -1,4 +1,5 @@
 "use strict";
+import {sleep} from './utils.js';
 
 function clearBlock(ctx, x, y, grid_size)
 {
@@ -46,6 +47,16 @@ class Point
 			throw new Error("Can't place point at non-numeric position");
 		this.x = x;
 		this.y = y;
+	}
+
+	distanceFrom(x, y)
+	{
+		if(x instanceof Point)
+		{
+			y = x.y;
+			x = x.x;
+		}
+		return Math.sqrt((this.x-x)**2 + (this.y-y)**2);
 	}
 }
 
@@ -129,6 +140,20 @@ export class Snake
 				continue;
 			if(!this.parts[i].equals(snake.parts[i]))
 				throw("FUCKING FUCKBALLS");
+		}
+	}
+
+	async startDeathAnimation()
+	{
+		let delay = 90;
+		for(const part of this.parts)
+		{
+			if(part)
+			{
+				await sleep(delay);
+				if(delay>30)delay--;
+				clearBlock(this.context, part.x, part.y, this.grid_size);
+			}
 		}
 	}
 
@@ -242,6 +267,16 @@ export class Snake
 			default:
 				throw "eh";
 		}
+
+		// Keep within bounds of walls
+		if(this.head.x < 0)
+			this.head.x += this.grid_size;
+		if(this.head.y < 0)
+			this.head.y += this.grid_size;
+		if(this.head.x >= this.grid_size)
+			this.head.x -= this.grid_size;
+		if(this.head.y >= this.grid_size)
+			this.head.y -= this.grid_size;
 		
 		if(this.context)
 			drawBlock(this.context,
