@@ -90,7 +90,7 @@ async function startGame(config)
 
 		let score = 0;
 		let delay = DEFAULT_DELAY;
-		let time_passed = Math.floor(ENEMY_SPAWN_DELAY*.94);
+		let time_passed = Math.floor(ENEMY_SPAWN_DELAY*.10);
 
 		displayScore(score);
 		displayHighScore();
