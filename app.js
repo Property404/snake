@@ -195,8 +195,8 @@ async function startGame(config)
 				if(enemies.length < config.number_of_enemies)
 				{
 					addEnemy(config.forethought);
-					time_passed = 0;
 				}
+				time_passed = 0;
 			}
 
 		}
