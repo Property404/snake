@@ -190,7 +190,7 @@ async function startGame(config)
 				await ai.wait();
 
 			time_passed+=delay;
-			if(time_passed > ENEMY_SPAWN_DELAY)
+			if(time_passed > ENEMY_SPAWN_DELAY && score > 10)
 			{
 				if(enemies.length < config.number_of_enemies)
 				{

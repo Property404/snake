@@ -42,9 +42,6 @@ export class SnakeAI
 		if(this.breakingOutOfCurrent(snake,food))
 			value += 1;
 
-		if(this.inBox(snake))
-			value -= 20;
-
 		// Nothing special
 		return value;
 	}
